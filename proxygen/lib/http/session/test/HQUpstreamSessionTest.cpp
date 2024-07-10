@@ -2287,19 +2287,21 @@ TEST_P(HQUpstreamSessionTestWebTransport, BidirectionalStream) {
   });
   // add a small read to trigger the above handler
   socketDriver_->addReadEvent(id, makeBuf(10), std::chrono::milliseconds(0));
-  flushAndLoopN(3);
+  flushAndLoopN(4);
   EXPECT_TRUE(socketDriver_->isStreamPaused(id));
 
   // Read again
   stream.readHandle->awaitNextRead(&eventBase_, [&](auto, auto streamData) {
-    EXPECT_EQ(streamData->data->computeChainDataLength(), 70000);
+    EXPECT_EQ(streamData->data->computeChainDataLength(), 65535);
     // Add EOF and wait for it
     socketDriver_->addReadEOF(id, std::chrono::milliseconds(0));
-    stream.readHandle->awaitNextRead(&eventBase_, [&](auto, auto streamData) {
-      EXPECT_TRUE(streamData->fin);
-    });
   });
-  flushAndLoopN(2);
+  flushAndLoopN(3);
+  stream.readHandle->awaitNextRead(&eventBase_, [&](auto, auto streamData) {
+    EXPECT_EQ(streamData->data->computeChainDataLength(), 4465);
+    EXPECT_TRUE(streamData->fin);
+  });
+  flushAndLoopN(1);
   closeWTSession();
 }
 
