@@ -20,7 +20,6 @@
 #include <proxygen/httpserver/samples/hq/H1QDownstreamSession.h>
 #include <proxygen/httpserver/samples/hq/HQLoggerHelper.h>
 #include <proxygen/lib/http/session/HQDownstreamSession.h>
-#include <quic/server/QuicSharedUDPSocketFactory.h>
 
 using fizz::server::FizzServerContext;
 using quic::QuicServerTransport;
@@ -280,8 +279,11 @@ HQServer::HQServer(
   }
 
   server_->setQuicServerTransportFactory(std::move(factory));
-  server_->setQuicUDPSocketFactory(
-      std::make_unique<QuicSharedUDPSocketFactory>());
+  // Use default socket factories:
+  // - listenerSocketFactory_ = QuicReusePortUDPSocketFactory (each worker
+  //   binds its own socket with SO_REUSEPORT for kernel-level load balancing)
+  // - socketFactory_ = QuicSharedUDPSocketFactory (new connections share
+  //   the worker's bound socket FD)
   server_->setHealthCheckToken("health");
   server_->setSupportedVersion(params_.quicVersions);
   server_->setFizzContext(std::move(fizzCtx));
